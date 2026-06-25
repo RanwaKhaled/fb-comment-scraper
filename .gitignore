@@ -1,4 +1,5 @@
 .streamlit/secrets.toml
+.venv
 *.csv
 __pycache__/
 *.pyc

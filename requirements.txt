@@ -3,4 +3,4 @@ pandas
 httpx
 selenium
 beautifulsoup4
-msedge-selenium-tools
+webdriver-manager
