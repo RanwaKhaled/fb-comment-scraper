@@ -2,11 +2,15 @@ import sys
 import re
 import time
 import random
+import platform
+import shutil
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 import pandas as pd
 
@@ -35,18 +39,33 @@ class FacebookScraper:
     def initialize_driver(self):
         options = webdriver.ChromeOptions()
         options.add_argument("--headless=new")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-gpu")
         options.add_argument("--disable-blink-features=AutomationControlled")
         options.add_experimental_option("excludeSwitches", ["enable-automation"])
         options.add_experimental_option("useAutomationExtension", False)
         options.add_argument("--window-size=1280,900")
-        # Add more stealth
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-        self.driver = webdriver.Chrome(options=options)
+
+        # Only force a custom binary path on Linux (e.g. Streamlit Cloud container).
+        # On Windows/Mac, let Selenium find the system-installed Chrome itself.
+        if platform.system() == "Linux":
+            chromium_path = (
+                shutil.which("chromium")
+                or shutil.which("chromium-browser")
+                or "/usr/bin/chromium"
+            )
+            options.binary_location = chromium_path
+
+        # webdriver-manager resolves the correct chromedriver for
+        # whatever Chrome/Chromium version is actually installed
+        driver_path = ChromeDriverManager().install()
+        service = Service(driver_path)
+
+        self.driver = webdriver.Chrome(service=service, options=options)
         self.driver.execute_script(
             "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
         )
-
     def simulate_human_typing(self, element, text):
         for char in text:
             element.send_keys(char)
