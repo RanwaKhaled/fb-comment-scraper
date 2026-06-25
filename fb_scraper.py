@@ -11,6 +11,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.core.os_manager import ChromeType
 from bs4 import BeautifulSoup
 import pandas as pd
 
@@ -47,25 +48,27 @@ class FacebookScraper:
         options.add_experimental_option("useAutomationExtension", False)
         options.add_argument("--window-size=1280,900")
 
-        # Only force a custom binary path on Linux (e.g. Streamlit Cloud container).
-        # On Windows/Mac, let Selenium find the system-installed Chrome itself.
         if platform.system() == "Linux":
+            # On Streamlit Cloud / Debian containers, apt installs Chromium,
+            # not Google Chrome — these are versioned independently, so the
+            # driver must be fetched as the Chromium flavor to match.
             chromium_path = (
                 shutil.which("chromium")
                 or shutil.which("chromium-browser")
                 or "/usr/bin/chromium"
             )
             options.binary_location = chromium_path
+            driver_path = ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()
+        else:
+            # Windows/Mac local dev: regular Google Chrome
+            driver_path = ChromeDriverManager().install()
 
-        # webdriver-manager resolves the correct chromedriver for
-        # whatever Chrome/Chromium version is actually installed
-        driver_path = ChromeDriverManager().install()
         service = Service(driver_path)
-
         self.driver = webdriver.Chrome(service=service, options=options)
         self.driver.execute_script(
             "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
         )
+
     def simulate_human_typing(self, element, text):
         for char in text:
             element.send_keys(char)
